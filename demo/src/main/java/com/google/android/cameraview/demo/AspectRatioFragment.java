@@ -46,7 +46,7 @@ public class AspectRatioFragment extends DialogFragment {
     private Listener mListener;
 
     public static AspectRatioFragment newInstance(Set<AspectRatio> ratios,
-            AspectRatio currentRatio) {
+                                                  AspectRatio currentRatio) {
         final AspectRatioFragment fragment = new AspectRatioFragment();
         final Bundle args = new Bundle();
         args.putParcelableArray(ARG_ASPECT_RATIOS,

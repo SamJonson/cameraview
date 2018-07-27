@@ -20,8 +20,10 @@ import android.annotation.SuppressLint;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
-import android.support.v4.util.SparseArrayCompat;
+import android.util.SparseArray;
 import android.view.SurfaceHolder;
+
+import com.google.android.cameraview.log.ILog;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,8 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 class Camera1 extends CameraViewImpl {
 
     private static final int INVALID_CAMERA_ID = -1;
-
-    private static final SparseArrayCompat<String> FLASH_MODES = new SparseArrayCompat<>();
+    private static final SparseArray<String> FLASH_MODES = new SparseArray<>();
 
     static {
         FLASH_MODES.put(Constants.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF);
@@ -71,6 +72,8 @@ class Camera1 extends CameraViewImpl {
 
     private int mDisplayOrientation;
 
+    private ILog mLog = CustomHelper.getLogger();
+
     Camera1(Callback callback, PreviewImpl preview) {
         super(callback, preview);
         preview.setCallback(new PreviewImpl.Callback() {
@@ -86,6 +89,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     boolean start() {
+        mLog.logD("start");
         chooseCamera();
         openCamera();
         if (mPreview.isReady()) {
@@ -98,6 +102,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     void stop() {
+        mLog.logD("stop");
         if (mCamera != null) {
             mCamera.stopPreview();
         }
@@ -108,6 +113,7 @@ class Camera1 extends CameraViewImpl {
     // Suppresses Camera#setPreviewTexture
     @SuppressLint("NewApi")
     void setUpPreview() {
+        mLog.logD("setUpPreview");
         try {
             if (mPreview.getOutputClass() == SurfaceHolder.class) {
                 final boolean needsToStopPreview = mShowingPreview && Build.VERSION.SDK_INT < 14;
@@ -133,6 +139,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     void setFacing(int facing) {
+        mLog.logD("setFacing isOpened: " + isCameraOpened());
         if (mFacing == facing) {
             return;
         }
@@ -161,6 +168,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     boolean setAspectRatio(AspectRatio ratio) {
+        mLog.logD("setAspectRatio isOpened: " + isCameraOpened() + "    | ratio: " + ratio);
         if (mAspectRatio == null || !isCameraOpened()) {
             // Handle this later when camera is opened
             mAspectRatio = ratio;
@@ -185,6 +193,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     void setAutoFocus(boolean autoFocus) {
+        mLog.logD("setAutoFocus: " + autoFocus);
         if (mAutoFocus == autoFocus) {
             return;
         }
@@ -204,6 +213,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     void setFlash(int flash) {
+        mLog.logD("setFlash: " + flash + "  | isOpen: " + isCameraOpened());
         if (flash == mFlash) {
             return;
         }
@@ -285,6 +295,8 @@ class Camera1 extends CameraViewImpl {
     }
 
     private void openCamera() {
+        mLog.logD("openCamera");
+
         if (mCamera != null) {
             releaseCamera();
         }
@@ -383,9 +395,9 @@ class Camera1 extends CameraViewImpl {
     /**
      * Calculate display orientation
      * https://developer.android.com/reference/android/hardware/Camera.html#setDisplayOrientation(int)
-     *
+     * <p>
      * This calculation is used for orienting the preview
-     *
+     * <p>
      * Note: This is not the same calculation as the camera rotation
      *
      * @param screenOrientationDegrees Screen orientation in degrees
@@ -401,10 +413,10 @@ class Camera1 extends CameraViewImpl {
 
     /**
      * Calculate camera rotation
-     *
+     * <p>
      * This calculation is applied to the output JPEG either via Exif Orientation tag
      * or by actually transforming the bitmap. (Determined by vendor camera API implementation)
-     *
+     * <p>
      * Note: This is not the same calculation as the display orientation
      *
      * @param screenOrientationDegrees Screen orientation in degrees

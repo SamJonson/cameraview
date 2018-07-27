@@ -24,11 +24,14 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 
-class SurfaceViewPreview extends PreviewImpl {
+import com.google.android.cameraview.log.ILog;
 
+class SurfaceViewPreview extends PreviewImpl {
+    private ILog mLog = CustomHelper.getLogger();
     final SurfaceView mSurfaceView;
 
     SurfaceViewPreview(Context context, ViewGroup parent) {
+        mLog.logD("SurfaceViewPreview construct");
         final View view = View.inflate(context, R.layout.surface_view, parent);
         mSurfaceView = (SurfaceView) view.findViewById(R.id.surface_view);
         final SurfaceHolder holder = mSurfaceView.getHolder();
@@ -37,12 +40,15 @@ class SurfaceViewPreview extends PreviewImpl {
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder h) {
+                mLog.logD("surfaceCreated");
             }
 
             @Override
             public void surfaceChanged(SurfaceHolder h, int format, int width, int height) {
+                mLog.logD("surfaceChanged width: " + width + " | height : " + height);
                 setSize(width, height);
                 if (!ViewCompat.isInLayout(mSurfaceView)) {
+                    mLog.logD("dispatchSurfaceChanged");
                     dispatchSurfaceChanged();
                 }
             }
