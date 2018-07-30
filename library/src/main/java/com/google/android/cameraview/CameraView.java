@@ -442,7 +442,7 @@ public class CameraView extends FrameLayout {
         mImpl.takePicture();
     }
 
-    private class CallbackBridge implements CameraViewImpl.Callback {
+    private class CallbackBridge implements ICameraViewCallback {
 
         private final ArrayList<Callback> mCallbacks = new ArrayList<>();
 

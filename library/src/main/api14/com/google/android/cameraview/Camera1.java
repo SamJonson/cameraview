@@ -74,7 +74,7 @@ class Camera1 extends CameraViewImpl {
 
     private ILog mLog = CustomHelper.getLogger();
 
-    Camera1(Callback callback, PreviewImpl preview) {
+    Camera1(ICameraViewCallback callback, PreviewImpl preview) {
         super(callback, preview);
         preview.setCallback(new PreviewImpl.Callback() {
             @Override
@@ -88,7 +88,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    boolean start() {
+    public boolean start() {
         mLog.logD("start begin");
         chooseCamera();
         openCamera();
@@ -103,7 +103,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    void stop() {
+    public void stop() {
         mLog.logD("stop");
         if (mCamera != null) {
             mCamera.stopPreview();
@@ -137,12 +137,12 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    boolean isCameraOpened() {
+    public boolean isCameraOpened() {
         return mCamera != null;
     }
 
     @Override
-    void setFacing(int facing) {
+    public void setFacing(int facing) {
         mLog.logD("setFacing isOpened: " + isCameraOpened());
         if (mFacing == facing) {
             return;
@@ -155,12 +155,12 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    int getFacing() {
+    public int getFacing() {
         return mFacing;
     }
 
     @Override
-    Set<AspectRatio> getSupportedAspectRatios() {
+    public Set<AspectRatio> getSupportedAspectRatios() {
         SizeMap idealAspectRatios = mPreviewSizes;
         for (AspectRatio aspectRatio : idealAspectRatios.ratios()) {
             if (mPictureSizes.sizes(aspectRatio) == null) {
@@ -171,7 +171,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    boolean setAspectRatio(AspectRatio ratio) {
+    public boolean setAspectRatio(AspectRatio ratio) {
         mLog.logD("setAspectRatio isOpened: " + isCameraOpened() + "    | ratio: " + ratio);
         if (mAspectRatio == null || !isCameraOpened()) {
             // Handle this later when camera is opened
@@ -191,12 +191,12 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    AspectRatio getAspectRatio() {
+    public AspectRatio getAspectRatio() {
         return mAspectRatio;
     }
 
     @Override
-    void setAutoFocus(boolean autoFocus) {
+    public void setAutoFocus(boolean autoFocus) {
         mLog.logD("setAutoFocus: " + autoFocus);
         if (mAutoFocus == autoFocus) {
             return;
@@ -207,7 +207,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    boolean getAutoFocus() {
+    public boolean getAutoFocus() {
         if (!isCameraOpened()) {
             return mAutoFocus;
         }
@@ -216,7 +216,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    void setFlash(int flash) {
+    public void setFlash(int flash) {
         mLog.logD("setFlash: " + flash + "  | isOpen: " + isCameraOpened());
         if (flash == mFlash) {
             return;
@@ -227,12 +227,12 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    int getFlash() {
+    public int getFlash() {
         return mFlash;
     }
 
     @Override
-    void takePicture() {
+    public void takePicture() {
         if (!isCameraOpened()) {
             throw new IllegalStateException(
                     "Camera is not ready. Call start() before takePicture().");
@@ -265,7 +265,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     @Override
-    void setDisplayOrientation(int displayOrientation) {
+    public void setDisplayOrientation(int displayOrientation) {
         if (mDisplayOrientation == displayOrientation) {
             return;
         }
