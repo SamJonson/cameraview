@@ -89,14 +89,16 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     boolean start() {
-        mLog.logD("start");
+        mLog.logD("start begin");
         chooseCamera();
         openCamera();
         if (mPreview.isReady()) {
             setUpPreview();
         }
         mShowingPreview = true;
+        //有点奇怪
         mCamera.startPreview();
+        mLog.logD("start end");
         return true;
     }
 
@@ -113,10 +115,11 @@ class Camera1 extends CameraViewImpl {
     // Suppresses Camera#setPreviewTexture
     @SuppressLint("NewApi")
     void setUpPreview() {
-        mLog.logD("setUpPreview");
+        mLog.logD("setUpPreview begin ");
         try {
             if (mPreview.getOutputClass() == SurfaceHolder.class) {
                 final boolean needsToStopPreview = mShowingPreview && Build.VERSION.SDK_INT < 14;
+                mLog.logD("setUpPreview needsToStopPreview:" + needsToStopPreview);
                 if (needsToStopPreview) {
                     mCamera.stopPreview();
                 }
@@ -130,6 +133,7 @@ class Camera1 extends CameraViewImpl {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        mLog.logD("setUpPreview end ");
     }
 
     @Override
@@ -295,7 +299,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     private void openCamera() {
-        mLog.logD("openCamera");
+        mLog.logD("openCamera begin");
 
         if (mCamera != null) {
             releaseCamera();
@@ -319,6 +323,7 @@ class Camera1 extends CameraViewImpl {
         adjustCameraParameters();
         mCamera.setDisplayOrientation(calcDisplayOrientation(mDisplayOrientation));
         mCallback.onCameraOpened();
+        mLog.logD("openCamera end");
     }
 
     private AspectRatio chooseAspectRatio() {
@@ -333,6 +338,7 @@ class Camera1 extends CameraViewImpl {
     }
 
     void adjustCameraParameters() {
+        mLog.logD("adjustCameraParameters begin");
         SortedSet<Size> sizes = mPreviewSizes.sizes(mAspectRatio);
         if (sizes == null) { // Not supported
             mAspectRatio = chooseAspectRatio();
@@ -355,6 +361,7 @@ class Camera1 extends CameraViewImpl {
         if (mShowingPreview) {
             mCamera.startPreview();
         }
+        mLog.logD("adjustCameraParameters end");
     }
 
     @SuppressWarnings("SuspiciousNameCombination")
