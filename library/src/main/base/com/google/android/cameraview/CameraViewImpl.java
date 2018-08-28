@@ -20,9 +20,9 @@ import android.view.View;
 
 abstract class CameraViewImpl implements ICameraView {
 
-    protected final ICameraViewCallback mCallback;
+    final ICameraViewCallback mCallback;
 
-    protected final PreviewImpl mPreview;
+    final PreviewImpl mPreview;
 
     CameraViewImpl(ICameraViewCallback callback, PreviewImpl preview) {
         mCallback = callback;

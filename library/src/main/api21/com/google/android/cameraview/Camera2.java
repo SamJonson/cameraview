@@ -35,6 +35,8 @@ import android.util.Log;
 import android.util.SparseIntArray;
 import android.view.Surface;
 
+import com.orhanobut.logger.Logger;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Set;
@@ -70,6 +72,7 @@ class Camera2 extends CameraViewImpl {
 
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
+            Logger.d("onOpened");
             mCamera = camera;
             mCallback.onCameraOpened();
             startCaptureSession();
@@ -77,27 +80,28 @@ class Camera2 extends CameraViewImpl {
 
         @Override
         public void onClosed(@NonNull CameraDevice camera) {
+            Logger.d("onClosed");
             mCallback.onCameraClosed();
         }
 
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
+            Logger.d("onDisconnected");
             mCamera = null;
         }
 
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
-            Log.e(TAG, "onError: " + camera.getId() + " (" + error + ")");
+            Logger.e(TAG, "onError: " + camera.getId() + " (" + error + ")");
             mCamera = null;
         }
-
     };
 
     private final CameraCaptureSession.StateCallback mSessionCallback
             = new CameraCaptureSession.StateCallback() {
-
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
+            Logger.d("onConfigured mCamera: " + mCamera);
             if (mCamera == null) {
                 return;
             }
@@ -128,10 +132,11 @@ class Camera2 extends CameraViewImpl {
 
     };
 
-    PictureCaptureCallback mCaptureCallback = new PictureCaptureCallback() {
+    private PictureCaptureCallback mCaptureCallback = new PictureCaptureCallback() {
 
         @Override
-        public void onPrecaptureRequired() {
+        public void onPreCaptureRequired() {
+            Logger.d("onPreCaptureRequired");
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                     CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
             setState(STATE_PRECAPTURE);
@@ -148,7 +153,6 @@ class Camera2 extends CameraViewImpl {
         public void onReady() {
             captureStillPicture();
         }
-
     };
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
@@ -156,6 +160,7 @@ class Camera2 extends CameraViewImpl {
 
         @Override
         public void onImageAvailable(ImageReader reader) {
+            Logger.d("onImageAvailable");
             try (Image image = reader.acquireNextImage()) {
                 Image.Plane[] planes = image.getPlanes();
                 if (planes.length > 0) {
@@ -174,11 +179,11 @@ class Camera2 extends CameraViewImpl {
 
     private CameraCharacteristics mCameraCharacteristics;
 
-    CameraDevice mCamera;
+    private CameraDevice mCamera;
 
-    CameraCaptureSession mCaptureSession;
+    private CameraCaptureSession mCaptureSession;
 
-    CaptureRequest.Builder mPreviewRequestBuilder;
+    private CaptureRequest.Builder mPreviewRequestBuilder;
 
     private ImageReader mImageReader;
 
@@ -198,6 +203,7 @@ class Camera2 extends CameraViewImpl {
 
     Camera2(ICameraViewCallback callback, PreviewImpl preview, Context context) {
         super(callback, preview);
+        Logger.d("Camera2 constructor ");
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
         mPreview.setCallback(new PreviewImpl.Callback() {
             @Override
@@ -209,6 +215,7 @@ class Camera2 extends CameraViewImpl {
 
     @Override
     public boolean start() {
+        Logger.d("camera2 start ");
         if (!chooseCameraIdByFacing()) {
             return false;
         }
@@ -334,6 +341,7 @@ class Camera2 extends CameraViewImpl {
 
     @Override
     public void takePicture() {
+        Logger.d("takePicture mAutoFocus:" + mAutoFocus);
         if (mAutoFocus) {
             lockFocus();
         } else {
@@ -353,6 +361,8 @@ class Camera2 extends CameraViewImpl {
      * {@link #mFacing}.</p>
      */
     private boolean chooseCameraIdByFacing() {
+        Logger.d("chooseCameraIdByFacing");
+
         try {
             int internalFacing = INTERNAL_FACINGS.get(mFacing);
             final String[] ids = mCameraManager.getCameraIdList();
@@ -411,6 +421,7 @@ class Camera2 extends CameraViewImpl {
      * {@link #mAspectRatio}.</p>
      */
     private void collectCameraInfo() {
+        Logger.d("collectCameraInfo");
         StreamConfigurationMap map = mCameraCharacteristics.get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         if (map == null) {
@@ -435,6 +446,7 @@ class Camera2 extends CameraViewImpl {
         if (!mPreviewSizes.ratios().contains(mAspectRatio)) {
             mAspectRatio = mPreviewSizes.ratios().iterator().next();
         }
+        Logger.d("collectCameraInfo  mPreviewSizes:" + mPreviewSizes);
     }
 
     protected void collectPictureSizes(SizeMap sizes, StreamConfigurationMap map) {
@@ -444,10 +456,13 @@ class Camera2 extends CameraViewImpl {
     }
 
     private void prepareImageReader() {
+        Logger.d("prepareImageReader");
         if (mImageReader != null) {
             mImageReader.close();
         }
         Size largest = mPictureSizes.sizes(mAspectRatio).last();
+        Logger.d("prepareImageReader: " + largest);
+
         mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
                 ImageFormat.JPEG, /* maxImages */ 2);
         mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
@@ -458,6 +473,7 @@ class Camera2 extends CameraViewImpl {
      * <p>The result will be processed in {@link #mCameraDeviceCallback}.</p>
      */
     private void startOpeningCamera() {
+        Logger.d("startOpeningCamera");
         try {
             mCameraManager.openCamera(mCameraId, mCameraDeviceCallback, null);
         } catch (CameraAccessException e) {
@@ -470,10 +486,12 @@ class Camera2 extends CameraViewImpl {
      * <p>This rewrites {@link #mPreviewRequestBuilder}.</p>
      * <p>The result will be continuously processed in {@link #mSessionCallback}.</p>
      */
-    void startCaptureSession() {
+    private void startCaptureSession() {
+        Logger.d("startCaptureSession pre");
         if (!isCameraOpened() || !mPreview.isReady() || mImageReader == null) {
             return;
         }
+        Logger.d("startCaptureSession begin ");
         Size previewSize = chooseOptimalSize();
         mPreview.setBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface surface = mPreview.getSurface();
@@ -483,8 +501,10 @@ class Camera2 extends CameraViewImpl {
             mCamera.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()),
                     mSessionCallback, null);
         } catch (CameraAccessException e) {
+            Logger.d("startCaptureSession error");
             throw new RuntimeException("Failed to start camera session");
         }
+
     }
 
     /**
@@ -518,7 +538,7 @@ class Camera2 extends CameraViewImpl {
     /**
      * Updates the internal state of auto-focus to {@link #mAutoFocus}.
      */
-    void updateAutoFocus() {
+    private void updateAutoFocus() {
         if (mAutoFocus) {
             int[] modes = mCameraCharacteristics.get(
                     CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
@@ -541,7 +561,7 @@ class Camera2 extends CameraViewImpl {
     /**
      * Updates the internal state of flash to {@link #mFlash}.
      */
-    void updateFlash() {
+    private void updateFlash() {
         switch (mFlash) {
             case Constants.FLASH_OFF:
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
@@ -580,6 +600,7 @@ class Camera2 extends CameraViewImpl {
      * Locks the focus as the first step for a still image capture.
      */
     private void lockFocus() {
+        Logger.d("lockFocus");
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_START);
         try {
@@ -593,7 +614,8 @@ class Camera2 extends CameraViewImpl {
     /**
      * Captures a still picture.
      */
-    void captureStillPicture() {
+    private void captureStillPicture() {
+        Logger.d("captureStillPicture");
         try {
             CaptureRequest.Builder captureRequestBuilder = mCamera.createCaptureRequest(
                     CameraDevice.TEMPLATE_STILL_CAPTURE);
@@ -654,7 +676,8 @@ class Camera2 extends CameraViewImpl {
      * Unlocks the auto-focus and restart camera preview. This is supposed to be called after
      * capturing a still picture.
      */
-    void unlockFocus() {
+    private void unlockFocus() {
+        Logger.d("unlockFocus");
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
         try {
@@ -708,6 +731,7 @@ class Camera2 extends CameraViewImpl {
         private void process(@NonNull CaptureResult result) {
             switch (mState) {
                 case STATE_LOCKING: {
+                    Logger.d("process mState STATE_LOCKING");
                     Integer af = result.get(CaptureResult.CONTROL_AF_STATE);
                     if (af == null) {
                         break;
@@ -720,12 +744,13 @@ class Camera2 extends CameraViewImpl {
                             onReady();
                         } else {
                             setState(STATE_LOCKED);
-                            onPrecaptureRequired();
+                            onPreCaptureRequired();
                         }
                     }
                     break;
                 }
                 case STATE_PRECAPTURE: {
+                    Logger.d("process mState STATE_PRECAPTURE");
                     Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (ae == null || ae == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
                             ae == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED ||
@@ -735,6 +760,7 @@ class Camera2 extends CameraViewImpl {
                     break;
                 }
                 case STATE_WAITING: {
+                    Logger.d("process mState STATE_WAITING");
                     Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (ae == null || ae != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
                         setState(STATE_CAPTURING);
@@ -753,7 +779,7 @@ class Camera2 extends CameraViewImpl {
         /**
          * Called when it is necessary to run the precapture sequence.
          */
-        public abstract void onPrecaptureRequired();
+        public abstract void onPreCaptureRequired();
 
     }
 

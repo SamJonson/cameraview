@@ -25,6 +25,8 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.orhanobut.logger.Logger;
+
 @TargetApi(14)
 class TextureViewPreview extends PreviewImpl {
 
@@ -33,6 +35,7 @@ class TextureViewPreview extends PreviewImpl {
     private int mDisplayOrientation;
 
     TextureViewPreview(Context context, ViewGroup parent) {
+        Logger.d("TextureViewPreview constructor ");
         final View view = View.inflate(context, R.layout.texture_view, parent);
         mTextureView = (TextureView) view.findViewById(R.id.texture_view);
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {

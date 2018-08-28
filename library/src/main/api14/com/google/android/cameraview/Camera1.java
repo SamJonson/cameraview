@@ -89,7 +89,7 @@ class Camera1 extends CameraViewImpl {
 
     @Override
     public boolean start() {
-        mLog.logD("start begin");
+        mLog.logD("camera1 start begin");
         chooseCamera();
         openCamera();
         if (mPreview.isReady()) {

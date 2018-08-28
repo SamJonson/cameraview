@@ -55,7 +55,7 @@ public class CameraView extends FrameLayout {
      */
     @IntDef({FACING_BACK, FACING_FRONT})
     @Retention(RetentionPolicy.SOURCE)
-    public @interface Facing {
+    @interface Facing {
     }
 
     /**
@@ -87,7 +87,7 @@ public class CameraView extends FrameLayout {
      * The mode for for the camera device's flash control
      */
     @IntDef({FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE})
-    public @interface Flash {
+    @interface Flash {
     }
 
     CameraViewImpl mImpl;
@@ -99,7 +99,7 @@ public class CameraView extends FrameLayout {
     private final DisplayOrientationDetector mDisplayOrientationDetector;
     private ILog mLog = CustomHelper.getLogger();
     // TODO: 2018/7/27 Just test for {@link Camera1} and {@link SurfaceViewPreview}
-    private boolean JUST_TEST_LOW_VERSION = true;
+    private boolean JUST_TEST_LOW_VERSION = false;
 
     public CameraView(Context context) {
         this(context, null);
@@ -455,7 +455,7 @@ public class CameraView extends FrameLayout {
             mCallbacks.add(callback);
         }
 
-        public void remove(Callback callback) {
+        void remove(Callback callback) {
             mCallbacks.remove(callback);
         }
 
@@ -484,7 +484,7 @@ public class CameraView extends FrameLayout {
             }
         }
 
-        public void reserveRequestLayoutOnOpen() {
+        void reserveRequestLayoutOnOpen() {
             mRequestLayoutOnOpen = true;
         }
     }
@@ -502,7 +502,7 @@ public class CameraView extends FrameLayout {
         int flash;
 
         @SuppressWarnings("WrongConstant")
-        public SavedState(Parcel source, ClassLoader loader) {
+        SavedState(Parcel source, ClassLoader loader) {
             super(source);
             facing = source.readInt();
             ratio = source.readParcelable(loader);
@@ -510,7 +510,7 @@ public class CameraView extends FrameLayout {
             flash = source.readInt();
         }
 
-        public SavedState(Parcelable superState) {
+        SavedState(Parcelable superState) {
             super(superState);
         }
 

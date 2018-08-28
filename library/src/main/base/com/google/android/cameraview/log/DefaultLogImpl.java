@@ -8,7 +8,6 @@ import com.orhanobut.logger.Logger;
  * the default log implement
  */
 public class DefaultLogImpl implements ILog {
-    private final String TAG = "DefaultLogTAG";
 
     @Override
     public void logE(@NonNull String tag, @NonNull String msg, @NonNull Exception ex) {

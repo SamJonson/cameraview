@@ -44,6 +44,7 @@ import android.widget.Toast;
 
 import com.google.android.cameraview.AspectRatio;
 import com.google.android.cameraview.CameraView;
+import com.orhanobut.logger.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -125,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onResume() {
         super.onResume();
+        Logger.d("onResume");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
             mCameraView.start();
@@ -243,12 +245,12 @@ public class MainActivity extends AppCompatActivity implements
 
         @Override
         public void onCameraClosed(CameraView cameraView) {
-            Log.d(TAG, "onCameraClosed");
+            Logger.d(TAG, "onCameraClosed");
         }
 
         @Override
         public void onPictureTaken(CameraView cameraView, final byte[] data) {
-            Log.d(TAG, "onPictureTaken " + data.length);
+            Logger.d(TAG, "onPictureTaken " + data.length);
             Toast.makeText(cameraView.getContext(), R.string.picture_taken, Toast.LENGTH_SHORT)
                     .show();
             getBackgroundHandler().post(new Runnable() {
@@ -275,7 +277,6 @@ public class MainActivity extends AppCompatActivity implements
                 }
             });
         }
-
     };
 
     public static class ConfirmationDialogFragment extends DialogFragment {

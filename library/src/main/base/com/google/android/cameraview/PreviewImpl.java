@@ -20,6 +20,8 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 
+import com.orhanobut.logger.Logger;
+
 
 /**
  * Encapsulates all the operations related to camera preview in a backward-compatible manner.
@@ -51,6 +53,7 @@ abstract class PreviewImpl {
     abstract boolean isReady();
 
     protected void dispatchSurfaceChanged() {
+        Logger.d("dispatchSurfaceChanged");
         mCallback.onSurfaceChanged();
     }
 
