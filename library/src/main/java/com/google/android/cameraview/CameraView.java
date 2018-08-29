@@ -16,6 +16,7 @@
 
 package com.google.android.cameraview;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -29,6 +30,8 @@ import android.support.v4.os.ParcelableCompat;
 import android.support.v4.os.ParcelableCompatCreatorCallbacks;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.FrameLayout;
 
 import com.google.android.cameraview.log.ILog;
@@ -99,7 +102,7 @@ public class CameraView extends FrameLayout {
     private final DisplayOrientationDetector mDisplayOrientationDetector;
     private ILog mLog = CustomHelper.getLogger();
     // TODO: 2018/7/27 Just test for {@link Camera1} and {@link SurfaceViewPreview}
-    private boolean JUST_TEST_LOW_VERSION = false;
+    private boolean JUST_TEST_LOW_VERSION = true;
 
     public CameraView(Context context) {
         this(context, null);
@@ -109,6 +112,7 @@ public class CameraView extends FrameLayout {
         this(context, attrs, 0);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @SuppressWarnings("WrongConstant")
     public CameraView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
@@ -155,6 +159,23 @@ public class CameraView extends FrameLayout {
                 mImpl.setDisplayOrientation(displayOrientation);
             }
         };
+
+        // Focus marker for manual focus
+        final FocusMarkerView mFocusMarkerView = new FocusMarkerView(getContext());
+        addView(mFocusMarkerView);
+        mFocusMarkerView.setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent motionEvent) {
+                int action = motionEvent.getAction();
+                if (action == MotionEvent.ACTION_UP) {
+                    mFocusMarkerView.focus(motionEvent.getX(), motionEvent.getY());
+                }
+                if (mImpl != null && mImpl.getView() != null) {
+                    mImpl.getView().dispatchTouchEvent(motionEvent);
+                }
+                return true;
+            }
+        });
     }
 
     @NonNull

@@ -32,4 +32,25 @@ abstract class CameraViewImpl implements ICameraView {
     View getView() {
         return mPreview.getView();
     }
+
+    /*--------------- for  manual focus */
+
+    public static final int FOCUS_AREA_SIZE_DEFAULT = 300;
+    public static final int FOCUS_METERING_AREA_WEIGHT_DEFAULT = 1000;
+    public static final int DELAY_MILLIS_BEFORE_RESETTING_FOCUS = 3000;
+
+
+    int getFocusAreaSize() {
+        return FOCUS_AREA_SIZE_DEFAULT;
+    }
+
+    int getFocusMeteringAreaWeight() {
+        return FOCUS_METERING_AREA_WEIGHT_DEFAULT;
+    }
+
+    void detachFocusTapListener() {
+        if (mPreview != null && mPreview.getView() != null) {
+            mPreview.getView().setOnTouchListener(null);
+        }
+    }
 }

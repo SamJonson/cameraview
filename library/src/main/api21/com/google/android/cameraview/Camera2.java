@@ -19,14 +19,17 @@ package com.google.android.cameraview;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.Rect;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -35,7 +38,9 @@ import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.SparseIntArray;
+import android.view.MotionEvent;
 import android.view.Surface;
+import android.view.View;
 
 import com.orhanobut.logger.Logger;
 
@@ -108,8 +113,8 @@ class Camera2 extends CameraViewImpl {
                 return;
             }
             mCaptureSession = session;
-//            updateAutoFocus();
-//            updateFlash();
+            updateAutoFocus();
+            updateFlash();
             try {
                 // Auto focus should be continuous for camera preview.
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
@@ -233,12 +238,14 @@ class Camera2 extends CameraViewImpl {
         super(callback, preview);
         Logger.d("Camera2 constructor ");
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-        mPreview.setCallback(new PreviewImpl.Callback() {
-            @Override
-            public void onSurfaceChanged() {
-                startCaptureSession();
-            }
-        });
+        if (null != mPreview) {
+            mPreview.setCallback(new PreviewImpl.Callback() {
+                @Override
+                public void onSurfaceChanged() {
+                    startCaptureSession();
+                }
+            });
+        }
     }
 
     @Override
@@ -597,19 +604,21 @@ class Camera2 extends CameraViewImpl {
      */
     private void updateAutoFocus() {
         if (mAutoFocus) {
-            int[] modes = mCameraCharacteristics.get(
-                    CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+            int[] modes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
             // Auto focus is not supported
             if (modes == null || modes.length == 0 ||
                     (modes.length == 1 && modes[0] == CameraCharacteristics.CONTROL_AF_MODE_OFF)) {
+                detachFocusTapListener();
                 mAutoFocus = false;
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_OFF);
             } else {
+                attachFocusTapListener();
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             }
         } else {
+            detachFocusTapListener();
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_OFF);
         }
@@ -838,6 +847,68 @@ class Camera2 extends CameraViewImpl {
          */
         public abstract void onPreCaptureRequired();
 
+    }
+
+    /* ---------------- just handle manual focus ---------------- */
+
+    //手动对焦参考方案：https://github.com/lin18/cameraview/commit/47b8a4e493cdb5f1085333577d55b749443047e9
+    private void attachFocusTapListener() {
+        mPreview.getView().setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (mCamera != null) {
+                        //计算获取对焦的区域
+                        Rect rect = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                        if (rect == null) return true;
+                        int areaSize = getFocusAreaSize();
+                        int right = rect.right;
+                        int bottom = rect.bottom;
+                        int viewWidth = mPreview.getView().getWidth();
+                        int viewHeight = mPreview.getView().getHeight();
+                        int ll, rr;
+                        Rect newRect;
+                        int centerX = (int) event.getX();
+                        int centerY = (int) event.getY();
+                        ll = ((centerX * right) - areaSize) / viewWidth;
+                        rr = ((centerY * bottom) - areaSize) / viewHeight;
+                        int focusLeft = clamp(ll, 0, right);
+                        int focusBottom = clamp(rr, 0, bottom);
+                        newRect = new Rect(focusLeft, focusBottom, focusLeft + areaSize, focusBottom + areaSize);
+                        MeteringRectangle meteringRectangle = new MeteringRectangle(newRect, getFocusMeteringAreaWeight());
+                        MeteringRectangle[] meteringRectangleArr = {meteringRectangle};
+                        // 设置自动曝光与聚焦的区域
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, meteringRectangleArr);
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, meteringRectangleArr);
+                        // 指定自动对焦模式为 CONTROL_AF_MODE_AUTO 模式
+                        // 非点击对焦的时候，模式应该为 CONTROL_AF_MODE_CONTINUOUS_PICTURE / CONTROL_AF_MODE_CONTINUOUS_VIDEO。
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+                        // 将对焦的状态修改为开始对焦
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+                        //在Google Pixel上测试手动对焦时，发现如果当前摄像头的画面非常暗的话，这里会打开一下闪光灯以便对焦
+                        try {
+                            if (mCaptureSession != null) {
+                                mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback, null);
+                            }
+                        } catch (CameraAccessException e) {
+                            Logger.e(TAG, "attachFocusTapListener", e);
+                        }
+                    }
+                }
+                return true;
+            }
+        });
+    }
+
+    private int clamp(int x, int min, int max) {
+        if (x < min) {
+            return min;
+        } else if (x > max) {
+            return max;
+        } else {
+            return x;
+        }
     }
 
 }
